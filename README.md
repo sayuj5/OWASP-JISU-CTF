@@ -1,3 +1,5 @@
+# <img src="src/assets/owasp_jis_ctf_logo.jpg" width="300" alt="OWASP JIS University Logo">
+
 # 🏁 OWASP-Gate: JIS University CTF 2026
 
 Welcome to the official **OWASP JIS University Student Chapter** CTF platform. This is a secure, gamified web experience designed to teach foundational cybersecurity concepts via the OWASP Top 10.
