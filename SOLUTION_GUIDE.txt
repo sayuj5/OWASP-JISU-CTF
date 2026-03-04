@@ -1,0 +1,76 @@
+###############################################################################
+#             OWASP-GATE CTF 2026 - OFFICIAL SOLUTION GUIDE                   #
+#             (FOR ADMIN USE ONLY - DO NOT SHARE WITH PARTICIPANTS)           #
+###############################################################################
+
+-------------------------------------------------------------------------------
+STAGE 1 - A01:2021 – Broken Access Control
+-------------------------------------------------------------------------------
+Vulnerability: Sensitive resource hidden via CSS but present in the DOM.
+Clue: "The structure of the document holds secrets the UI refuses to show."
+
+SOLVE STEPS:
+1. Open Browser DevTools (F12 or Right-click -> Inspect).
+2. Go to the 'Elements' tab.
+3. Search (Ctrl+F) for: admin-portal
+4. Find the hidden div: <div id="admin-portal" style="display: none;">
+5. Extract the flag from inside the div.
+
+FLAG: flag{p0rtal_v1s1b1lity_99}
+
+-------------------------------------------------------------------------------
+STAGE 2 - A03:2021 – Injection
+-------------------------------------------------------------------------------
+Vulnerability: Exposed global function in the JavaScript runtime.
+Clue: "Identify the exposed function name from the briefing."
+
+SOLVE STEPS:
+1. Open Browser DevTools -> Console tab.
+2. Type the following command and press Enter:
+   triggerPayloadBreach("OWASP_JIS_2026")
+3. The console will return a success message with the flag.
+
+FLAG: flag{inj3ct_th3_futur3}
+
+-------------------------------------------------------------------------------
+STAGE 3 - A05:2021 – Security Misconfiguration
+-------------------------------------------------------------------------------
+Vulnerability: Information leakage in comments, CSS, and logs.
+Clue: "Markup holds notes, styles can carry secrets, and runtime logs are never silent."
+
+SOLVE STEPS (Assemble 3 parts):
+- PART 1 (HTML Comment): In DevTools 'Elements' tab, look for the comment:
+  <!-- DEVELOPER NOTE: REMOVE BEFORE PROD! Part 1: flag{fragm3nted -->
+- PART 2 (CSS Variable): In 'Elements' tab, inspect the hidden div at the 
+  bottom of the page. Check the Styles pane or computed value of the
+  variable --secret-fragment.
+  Value: "_s3cur1ty"
+- PART 3 (Console Log): Keep the Console tab open. Every 7 seconds, a 
+  "whisper" log appears automatically:
+  "[A05-WHISPER] ◈ Part 3 of the flag: _r1sk}"
+
+ASSEMBLY: flag{fragm3nted + _s3cur1ty + _r1sk}
+
+FLAG: flag{fragm3nted_s3cur1ty_r1sk}
+
+-------------------------------------------------------------------------------
+STAGE 4 - A02:2021 – Cryptographic Failures
+-------------------------------------------------------------------------------
+Vulnerability: Weak encoding (Base64) used instead of encryption.
+Clue: "Designed for data transport, not secrecy... natively reversible."
+
+SOLVE STEPS:
+1. Identify the signal: RkxBR3tiNDU2NF9pNV9mdW59
+2. Use the browser console to decode:
+   atob("RkxBR3tiNDU2NF9pNV9mdW59")
+3. Result: "FLAG{b4564_i5_fun}"
+
+FLAG: flag{b4564_i5_fun}
+
+-------------------------------------------------------------------------------
+ADMIN ACCESS
+-------------------------------------------------------------------------------
+- Access Link: Small "🔐" icon in bottom-right of Login Page (Hover to see).
+- Default Passkey: OWASP-ADMIN-JIS-2026
+- Dashboard Features: Real-time leaderboard, progress dots, score sync.
+###############################################################################
