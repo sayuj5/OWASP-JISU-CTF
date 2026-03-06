@@ -6,7 +6,7 @@ Welcome to the official **OWASP JIS University Student Chapter** CTF platform. T
 
 ---
 
-## 🛠️ Deployment Instructions (For Sagnik)
+## 🛠️ Deployment Instructions
 
 Hey Sagnik! Here is everything you need to get this platform live for the event.
 
