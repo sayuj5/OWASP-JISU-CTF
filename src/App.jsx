@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './index.css';
 import { supabase } from './lib/supabase';
-import owaspLogo from './assets/owasp_jis_logo.png';
-import owaspCtfLogo from './assets/owasp_jis_ctf_logo.jpg';
+import owaspLogo from './assets/owasp_jis_ctf_logo.jpg';
 
 // ─── ADMIN PASSKEY ──────────────────────────────────────────────────────────
 const ADMIN_KEY = 'OWASP-ADMIN-JIS-2026';
@@ -716,7 +715,7 @@ const AdminDashboard = ({ onExit }) => {
 };
 
 // ─── CTF TERMINAL ────────────────────────────────────────────────────────────
-const CTFTerminal = ({ user: initialUser }) => {
+const CTFTerminal = ({ user: initialUser, onLogout }) => {
   const [user, setUser] = useState(initialUser);
   const [stageIndex, setStageIndex] = useState(() => {
     const done = (initialUser.completed_stages || []).length;
@@ -813,7 +812,7 @@ const CTFTerminal = ({ user: initialUser }) => {
     return (
       <div className="terminal-container">
         <div className="victory-screen">
-          <img src={owaspCtfLogo} alt="OWASP JIS University" style={{ width: '200px', marginBottom: '1rem', borderRadius: '4px' }} />
+          <img src={owaspLogo} alt="OWASP JIS University" style={{ width: '200px', marginBottom: '1rem', borderRadius: '4px' }} />
           <h1 style={{ margin: '0 0 0.5rem' }}>SYSTEM OVERRIDDEN</h1>
           <p style={{ opacity: 0.8, fontSize: '0.9rem' }}>
             Outstanding, Operative <strong>{user.name}</strong>.<br />
@@ -833,6 +832,9 @@ const CTFTerminal = ({ user: initialUser }) => {
               JOIN OWASP JIS STUDENT CHAPTER →
             </button>
           </a>
+          <button className="logout-btn" style={{ marginTop: '1.2rem', width: 'auto', display: 'block', margin: '1.2rem auto 0' }} onClick={onLogout}>
+            TERMINATE SESSION & EXIT
+          </button>
         </div>
       </div>
     );
@@ -843,12 +845,13 @@ const CTFTerminal = ({ user: initialUser }) => {
       {/* Header */}
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src={owaspCtfLogo} alt="OWASP JIS" style={{ height: '34px', borderRadius: '3px' }} />
+          <img src={owaspLogo} alt="OWASP JIS" style={{ height: '34px', borderRadius: '3px' }} />
           <span className="header-title">OWASP-GATE v2.0</span>
           {saving && <span style={{ fontSize: '0.6rem', color: 'var(--c-dimtext)', animation: 'pulse 1s infinite' }}>↑ SYNCING...</span>}
         </div>
         <div className="status-bar">
           {user.name} · {user.mode === 'group' ? `⊞ ${user.team_name}` : '◈ SOLO'} · STG {stageIndex + 1}/{CHALLENGES.length} · {user.score || 0} pts
+          <button className="logout-btn" style={{ marginLeft: '12px' }} onClick={onLogout}>logout</button>
         </div>
       </div>
 
@@ -910,14 +913,78 @@ const CTFTerminal = ({ user: initialUser }) => {
 export default function App() {
   const [view, setView] = useState('splash'); // splash | login | register | admin-login | admin | ctf
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleLogin = (u) => { setUser(u); setView('ctf'); };
+  useEffect(() => {
+    const checkSession = async () => {
+      const savedUserEmail = localStorage.getItem('owasp_ctf_user_email');
+      const isAdmin = localStorage.getItem('owasp_ctf_is_admin');
+
+      if (isAdmin === 'true') {
+        setView('admin');
+        setLoading(false);
+        return;
+      }
+
+      if (savedUserEmail) {
+        try {
+          const { data, error } = await supabase
+            .from('participants')
+            .select('*')
+            .eq('email', savedUserEmail)
+            .single();
+
+          if (data && !error) {
+            setUser(data);
+            setView('ctf');
+          }
+        } catch (err) {
+          console.error("Session restoration failed:", err);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkSession();
+  }, []);
+
+  const handleLogin = (u) => {
+    setUser(u);
+    localStorage.setItem('owasp_ctf_user_email', u.email);
+    localStorage.removeItem('owasp_ctf_is_admin');
+    setView('ctf');
+  };
+
+  const handleAdminLogin = () => {
+    localStorage.setItem('owasp_ctf_is_admin', 'true');
+    localStorage.removeItem('owasp_ctf_user_email');
+    setView('admin');
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('owasp_ctf_user_email');
+    localStorage.removeItem('owasp_ctf_is_admin');
+    setView('login');
+  };
+
+  if (loading) {
+    return (
+      <div className="login-container">
+        <MatrixBackground />
+        <div style={{ color: 'var(--c-primary)', zIndex: 10, fontSize: '1.2rem', fontWeight: 'bold' }}>
+          VERIFYING SESSION...
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'splash') return <SplashScreen onComplete={() => setView('login')} />;
   if (view === 'login') return <LoginPage onLogin={handleLogin} onGoRegister={() => setView('register')} onGoAdmin={() => setView('admin-login')} />;
   if (view === 'register') return <RegisterPage onLogin={handleLogin} onGoLogin={() => setView('login')} />;
-  if (view === 'admin-login') return <AdminLoginPage onAdminLogin={() => setView('admin')} onGoLogin={() => setView('login')} />;
-  if (view === 'admin') return <AdminDashboard onExit={() => setView('login')} />;
-  if (view === 'ctf' && user) return <CTFTerminal user={user} />;
-  return null;
+  if (view === 'admin-login') return <AdminLoginPage onAdminLogin={handleAdminLogin} onGoLogin={() => setView('login')} />;
+  if (view === 'admin') return <AdminDashboard onExit={handleLogout} />;
+  if (view === 'ctf' && user) return <CTFTerminal user={user} onLogout={handleLogout} />;
+
+  return <LoginPage onLogin={handleLogin} onGoRegister={() => setView('register')} onGoAdmin={() => setView('admin-login')} />;
 }
